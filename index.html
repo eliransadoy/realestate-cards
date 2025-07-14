@@ -2,53 +2,161 @@
 <html lang="he">
 <head>
 <meta charset="UTF-8" />
-<title>נכסים מעודכנים דינמי</title>
+<title>נכסים מעודכנים - דינמי</title>
 <style>
-  body { font-family: Arial, sans-serif; direction: rtl; }
-  .card { border: 1px solid #ccc; border-radius: 10px; padding: 15px; margin: 10px; max-width: 320px; }
-  .card img { width: 100%; height: 200px; object-fit: cover; border-radius: 8px; }
-  .card-title { font-weight: bold; margin: 10px 0; }
-  .card-price { color: blue; font-weight: bold; margin: 10px 0; }
+  body {
+    font-family: Arial, sans-serif;
+    direction: rtl;
+    background: #f5f5f5;
+    margin: 20px;
+  }
+  .container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
+  }
+  .card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    width: 320px;
+    display: flex;
+    flex-direction: column;
+    transition: box-shadow 0.3s ease;
+    overflow: hidden;
+  }
+  .card:hover {
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  }
+  .card img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    cursor: pointer;
+  }
+  .card-content {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .card-title {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 12px;
+    color: #2c3e50;
+  }
+  .card-description {
+    font-size: 15px;
+    color: #555;
+    margin-bottom: 15px;
+    white-space: pre-line;
+    flex-grow: 1;
+  }
+  .card-price {
+    font-weight: 700;
+    color: #1a73e8;
+    margin-bottom: 15px;
+  }
+  .link-to-property {
+    color: #1a73e8;
+    text-decoration: underline;
+    margin-bottom: 15px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .btn {
+    background-color: #1a73e8;
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 14px;
+    text-align: center;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+    user-select: none;
+  }
+  .btn:hover {
+    background-color: #155ab6;
+  }
 </style>
 </head>
 <body>
-<h1>נכסים מעודכנים דינמי</h1>
-<div id="container"></div>
+<h1>נכסים מעודכנים</h1>
+<div class="container" id="container"></div>
 
 <script>
-const url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTwZPTp77QNaC440BW-kIPolCcuXixC-kAU_Tqwy34qWeMYn3fOJSoOjtIqXrjs1OPyeTR0pGGrdMQD/gviz/tq?tqx=out:json&sheet=Sheet1';
+  // הכנס כאן את ה-ID של הגיליון שלך (מהקישור בפורמט ה-e/.../)
+  const sheetId = '2PACX-1vTwZPTp77QNaC440BW-kIPolCcuXixC-kAU_Tqwy34qWeMYn3fOJSoOjtIqXrjs1OPyeTR0pGGrdMQD';
+  
+  // הכנס כאן את שם הגיליון (Sheet1, גיליון1 וכו')
+  const sheetName = 'Sheet1';
 
-fetch(url)
-  .then(res => res.text())
-  .then(text => {
-    const json = JSON.parse(text.substring(47).slice(0, -2));
-    const rows = json.table.rows;
-    const container = document.getElementById('container');
+  const url = `https://docs.google.com/spreadsheets/d/e/${sheetId}/gviz/tq?tqx=out:json&sheet=${sheetName}`;
 
-    rows.forEach((row, index) => {
-      if (index === 0) return; // לדלג על שורת הכותרת
-      const c = row.c;
+  fetch(url)
+    .then(res => res.text())
+    .then(text => {
+      const json = JSON.parse(text.substring(47).slice(0, -2));
+      const rows = json.table.rows;
+      const container = document.getElementById('container');
 
-      const name = c[3]?.v || 'אין שם';
-      const description = c[1]?.v || '';
-      const imageUrl = c[2]?.v || '';
-      const price = c[7]?.v || 'מחיר לא זמין';
-      const link = c[4]?.v || '#';
+      rows.forEach((row, i) => {
+        if(i === 0) return; // לדלג על שורת הכותרות
 
-      const card = document.createElement('div');
-      card.className = 'card';
-      card.innerHTML = `
-        <a href="${link}" target="_blank"><img src="${imageUrl}" alt="תמונה"></a>
-        <div class="card-title">${name}</div>
-        <div>${description}</div>
-        <div class="card-price">מחיר: ${price} ₪</div>
-        <a href="${link}" target="_blank">קישור לנכס</a>
-      `;
+        const cells = row.c;
 
-      container.appendChild(card);
-    });
-  })
-  .catch(e => console.error('Error:', e));
+        const propertyName = cells[4]?.v || 'אין שם';
+        const description = cells[1]?.v || '';
+        const imageLinkRaw = cells[3]?.v || '';
+        const linkRaw = cells[5]?.v || '#';
+        const priceRaw = cells[7]?.v || 'מחיר לא זמין';
+
+        function getDirectImageLink(url) {
+          if (typeof url !== 'string' || url.trim() === '') return '';
+          let trimmedUrl = url.trim().replace(/^"|"$/g, '');
+          trimmedUrl = trimmedUrl.replace('export=download', 'export=view');
+          const idMatch = trimmedUrl.match(/id=([a-zA-Z0-9_-]+)/);
+          if (idMatch && idMatch[1]) {
+            return `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
+          }
+          const regex = /\/d\/([a-zA-Z0-9_-]+)/;
+          const match = trimmedUrl.match(regex);
+          if (match && match[1]) {
+            return `https://drive.google.com/uc?export=view&id=${match[1]}`;
+          }
+          return trimmedUrl;
+        }
+
+        const imageLink = getDirectImageLink(imageLinkRaw);
+        const price = !isNaN(priceRaw) ? Number(priceRaw).toLocaleString('he-IL') : priceRaw;
+
+        const calendarBaseUrl = 'https://calendly.com/your-calendly-username';
+        const calendarLink = `${calendarBaseUrl}?property=${encodeURIComponent(propertyName)}`;
+
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <a href="${linkRaw}" target="_blank" style="text-decoration:none; cursor:pointer;">
+            <img src="${imageLink}" alt="תמונת נכס" />
+          </a>
+          <div class="card-content">
+            <div class="card-title">${propertyName}</div>
+            <div class="card-description">${description}</div>
+            <div class="card-price">מחיר: ${price} ₪</div>
+            <a href="${linkRaw}" target="_blank" class="link-to-property">קישור לנכס</a>
+            <a href="${calendarLink}" target="_blank" class="btn">תיאום פגישה</a>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    })
+    .catch(err => console.error('Error loading sheet:', err));
 </script>
+
 </body>
 </html>
